@@ -1,10 +1,12 @@
 package com.builtbroken.git.stat;
 
 import com.builtbroken.git.stat.obj.Commit;
+import com.builtbroken.jlib.lang.StringHelpers;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Simple program that process a .git project for statistic data.
@@ -16,17 +18,66 @@ public class Main
 {
     public static void main(String... args) throws Exception
     {
+        print("Starting.....");
+        print("Parsing .git folder");
         //TODO change
         File file = new File("F:/github/1.7/VoltzEngine");
-
+        print("\tPath: " + file.getAbsolutePath());
         //Build command
         ProcessBuilder builder = new ProcessBuilder("git", "log", "--pretty=format:\"c:%H,%an<%ae>,%ad\"", "--shortstat");
         //Set run directory
         builder.directory(file);
+
+        print("Firing commands....");
+        //Start timer
+        long time = System.nanoTime();
+
         //Fire command
         Process p = builder.start();
-        parseLog(p.getInputStream());
-        //printLog(p.getInputStream());
+        //End timer, convert to time taken
+        time = System.nanoTime() - time;
+        print("\tFinished in " + StringHelpers.formatNanoTime(time));
+
+        print("Parsing output....");
+        //Start timer
+        time = System.nanoTime();
+        List<Commit> commits = parseLog(p.getInputStream());
+        //End timer, convert to time taken
+        time = System.nanoTime() - time;
+
+        print("\tFinished in " + StringHelpers.formatNanoTime(time));
+        print("\t" + commits.size() + " commits");
+
+        //Take a random sample to represent the commits
+        print("Taking Random Samples....");
+
+        //Get random commits, ensure non-repeating, and good data
+        Random random = new Random();
+        List<Integer> ints = new ArrayList();
+        List<Commit> sampleCommits = new ArrayList<Commit>();
+        for (int i = 0; i < 35; )
+        {
+            int rng = random.nextInt(3500);
+
+            if (!ints.contains(rng))
+            {
+                ints.add(rng);
+                Commit commit = commits.get(rng);
+                if (commit.changesShort != null && !commit.changesShort.isEmpty())
+                {
+                    System.out.println("Commit: " + rng);
+                    System.out.println("\t" + commit);
+                    System.out.println("\t" + commit.changesShort);
+                    sampleCommits.add(commit);
+                    i++;
+                }
+            }
+        }
+    }
+
+    static void print(String msg)
+    {
+        System.out.println(msg);
     }
 
     private static void printLog(InputStream stream) throws IOException
@@ -40,7 +91,7 @@ public class Main
         }
     }
 
-    private static void parseLog(InputStream stream) throws IOException
+    private static List<Commit> parseLog(InputStream stream) throws IOException
     {
         //Get command output for parsing
         BufferedReader r = new BufferedReader(new InputStreamReader(stream));
@@ -69,6 +120,7 @@ public class Main
             }
             line = r.readLine();
         }
+        return commits;
     }
 
 
@@ -86,7 +138,7 @@ public class Main
         {
             Commit commit = new Commit();
             String[] split = line.replace("c:", "").split(",");
-            commit.id = split[0];
+            commit.commitHash = split[0];
             commit.author = split[1];
             //Parse date
             String date = split[2];

@@ -10,7 +10,7 @@ public class Commit
 {
     public String author;
     public String message;
-    public String id;
+    public String commitHash;
 
     public String dayOfWeek;
     public String month;
@@ -24,4 +24,9 @@ public class Commit
     public String changes;
     public String changesShort;
 
+    @Override
+    public String toString()
+    {
+        return commitHash;
+    }
 }
